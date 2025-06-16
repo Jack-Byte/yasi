@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "yasi"
+  site-url: "https://Jack-Byte.github.io/yasi"
+  description: "DIY alternative to solve it from fast.ai (Yet-Another-SolveIt)"
+  repo-branch: main
+  repo-url: "https://github.com/Jack-Byte/yasi"
