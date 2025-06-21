@@ -1,0 +1,62 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "yasi",
+    "section": "",
+    "text": "Install latest from the GitHub repository:\n$ pip install git+https://github.com/Jack-Byte/yasi.git\nor from pypi\n$ pip install yasi\n\n\n\nDocumentation can be found hosted on this GitHub repository’s pages. Additionally you can find package manager specific guidelines on conda and pypi respectively.",
+    "crumbs": [
+      "yasi"
+    ]
+  },
+  {
+    "objectID": "index.html#usage",
+    "href": "index.html#usage",
+    "title": "yasi",
+    "section": "",
+    "text": "Install latest from the GitHub repository:\n$ pip install git+https://github.com/Jack-Byte/yasi.git\nor from pypi\n$ pip install yasi\n\n\n\nDocumentation can be found hosted on this GitHub repository’s pages. Additionally you can find package manager specific guidelines on conda and pypi respectively.",
+    "crumbs": [
+      "yasi"
+    ]
+  },
+  {
+    "objectID": "index.html#how-to-use",
+    "href": "index.html#how-to-use",
+    "title": "yasi",
+    "section": "How to use",
+    "text": "How to use\nSetup a chat by. Import JupyterChat, set openai_base_url (only if you are not using Openai itself), and provide your api key.\n\nimport os\nfrom yasi.core import JupyterChat\n\napi_key = os.environ.get('API_KEY')\njc = JupyterChat(openai_base_url=\"https://openrouter.ai/api/v1\", api_key=api_key)\n\n\nQuery Openai directly\nYou can use the send_query method to interacte through a code cell directly. The response will be added as a new markdown cell in your current notebook.\n\njc.send_query('Kia ora, how are you?')\n\nKia ora! I’m doing well, thanks for asking! It’s great to connect with you and practice some basic Maori phrases. How can I help you today?\n\n\nSend Dialoge from your Notebook\nJupyterChat can also extract messages from your current notebook and construct a dialoge. Running out of time… more examples with the next commit.",
+    "crumbs": [
+      "yasi"
+    ]
+  },
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "Source",
+    "section": "",
+    "text": "source",
+    "crumbs": [
+      "Source"
+    ]
+  },
+  {
+    "objectID": "core.html#setup-jupyterchat",
+    "href": "core.html#setup-jupyterchat",
+    "title": "Source",
+    "section": "Setup JupyterChat",
+    "text": "Setup JupyterChat\nA few things can be demonstraded without having access to an openai API. For instance getting the dictonary or the current notebook using ipylab.\n\njc = JupyterChat(api_key='not-a-key')\n\nYou can get the dictionary of the current notebook.\n\n# ToDo: Bugfix\n#nb = jc.get_current_nb()\n#nb.keys()\n\nAnd search the source code lines of the cells for a specific tag.\n\n#for cell in nb['cells'][:5]:\n#    print(tag_in_cell(cell, '# Source'))",
+    "crumbs": [
+      "Source"
+    ]
+  },
+  {
+    "objectID": "core.html#connecting-to-an-openai-api",
+    "href": "core.html#connecting-to-an-openai-api",
+    "title": "Source",
+    "section": "Connecting to an Openai API",
+    "text": "Connecting to an Openai API\nIn order to use all JupyterChat you need to provide the base url for the Openai API (not neccessary if its actually openai.com), and a valid API key of the provider.\nThe following example is using https://openrouter.ai which gives you free access to multiple open source models.\n\nimport os\napi_key = os.environ.get('API_KEY')\njc = JupyterChat(openai_base_url=\"https://openrouter.ai/api/v1\", api_key=api_key)\n\nHello there I am JupyterChat your witty AI assistant. How can I help you today?\nI am wondering when https://solveit.fast.ai/ will make solveit available\n\n#jc.extract_notebook_dialoge()\n\n\n#jc.send_dialoge()",
+    "crumbs": [
+      "Source"
+    ]
+  }
+]
