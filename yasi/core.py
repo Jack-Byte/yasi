@@ -9,6 +9,7 @@ __all__ = ['JupyterChat', 'tag_in_cell']
 from ipylab import JupyterFrontEnd
 import openai
 import json
+import asyncio
 
 class JupyterChat:
     """Integrates a chatbot into JupyterLab, allowing users to interact with an OpenAI model directly within notebooks."""
@@ -16,6 +17,7 @@ class JupyterChat:
                  api_key : str,  # api key for the openai api
                  openai_base_url : str =None, # base url of the openai api
                  model : str =None, # model id for the openai api
+                 tag_system : str ='#| chat_system', # tag for system chat markdown cells
                  tag_user : str ='#| chat_user', # tag for user chat markdown cells
                  tag_assistant : str ='#| chat_assistant' # tag for assistant chat markdown cells
                 ):
@@ -23,6 +25,7 @@ class JupyterChat:
         self.app = JupyterFrontEnd()
         self.model = model if model is not None else 'meta-llama/llama-3.3-8b-instruct:free'
         self.latest_response = None
+        self.tag_system =  tag_system
         self.tag_user = tag_user
         self.tag_assistant = tag_assistant
 
@@ -53,38 +56,56 @@ class JupyterChat:
             current_notebook = json.load(f)
         return current_notebook
     
-    def extract_notebook_dialoge(self):
-        """Extracts the tagged dialoge form the current notebook, and turns it into a messages list"""
+    def extract_notebook_dialog(self):
+        """Extracts the tagged dialog form the current notebook, and turns it into a messages list"""
         current_notebook = self.get_current_nb()
         tmp_messages = []
         for cell in current_notebook['cells']:
-            user_tag =  tag_in_cell(cell, self.tag_user)
-            ast_tag =  tag_in_cell(cell, self.tag_assistant)
-            if any([user_tag, ast_tag]):
-                role = 'user' if user_tag else 'assistant'
+            found_tags = {
+                'system' : tag_in_cell(cell, self.tag_system),
+                'user' : tag_in_cell(cell, self.tag_user),
+                'assistant': tag_in_cell(cell, self.tag_assistant)
+            }
+            roles = [k for k,v in found_tags.items() if v == True]
+            if len(roles) == 1:
+                role = roles[0]
                 tmp_content = ''.join(cell['source'])
                 tmp_messages.append({"role": role, "content": tmp_content})
-            if all([user_tag, ast_tag]):
-                tmp_content = '## ⚠⚠⚠ cell contains user and asssitant tags ⚠⚠⚠\n'
+            if len(roles) > 1:
+                tmp_content = '## ⚠⚠⚠ cell contains multiple tags ⚠⚠⚠\n'
                 tmp_content += 'identify the following cell and select only one tag\n'
                 tmp_content += '> ' + '> '.join(cell['source'])
                 self.create_new_markdown_cell(tmp_content)
         return tmp_messages
 
-    def send_dialoge(self):
+    def send_dialog(self):
         """Sends the dialoge to the openai api and adds the response as a new cell below"""
         response = self.client.chat.completions.create(
             model=self.model,
-            messages= self.extract_notebook_dialoge()
+            messages= self.extract_notebook_dialog()
         )
         self.latest_response = response
         response_text = response.choices[0].message.content.strip()
         
         # Format the response with Markdown-like style in a code cell
-        formatted_response = f'{self.tag_assistant}\n\n{response_text}'.strip()
+        formatted_response = response_text.strip()
 
         # Insert a new cell below with the assistant's response
         self.create_new_markdown_cell(formatted_response)
+
+    async def initialize(self):
+        """Asynchronous initialization to ensure the app is fully ready."""
+        #await self.app.start()  # Wait for the environment to initialize
+        # Wait for current session info or timeout (up to 5 seconds)
+        for _ in range(10):  # Try up to 10 times with 0.5s wait
+            self.current_session = self.app.sessions.current_session
+            if 'name' in self.current_session:
+                break
+            await asyncio.sleep(0.5)
+        else:
+            raise RuntimeError("Could not detect current session after timeout.")
+
+        print("Chat initialized for session:", self.current_session.name)
 
 # %% ../nbs/00_core.ipynb 4
 def tag_in_cell(cell, # Dictonary of a Jupyter Notebook cell
