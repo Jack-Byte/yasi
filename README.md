@@ -31,15 +31,17 @@ package manager specific guidelines on
 
 ## How to use
 
-Setup a chat by. Import JupyterChat, set openai_base_url (only if you
-are not using Openai itself), and provide your api key.
+You can try it online with Binder
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Jack-Byte/yasi/HEAD?urlpath=%2Fdoc%2Ftree%2F%2Fexamples%2Fmoney_and_kangaroos.ipynb)
+
+Import JupyterChat, set openai_base_url (only if you are not using
+Openai itself), and provide your api key directly or as the env variable
+`OPENAI_API_KEY`.
 
 ``` python
-import os
 from yasi.core import JupyterChat
 
-api_key = os.environ.get('API_KEY')
-jc = JupyterChat(openai_base_url="https://openrouter.ai/api/v1", api_key=api_key)
+jc = JupyterChat(openai_base_url="https://openrouter.ai/api/v1", api_key=None)
 ```
 
 ### Query Openai directly
@@ -57,6 +59,17 @@ you and practice some basic Maori phrases. How can I help you today?
 
 ### Send Dialoge from your Notebook
 
-JupyterChat can also extract messages from your current notebook and
-construct a dialoge. Running out of time… more examples with the next
-commit.
+JupyterChat is designed to extract messages from your current notebook
+and construct a dialoge.
+
+It’s searching for markdown cells that contain the tags
+
+- `#| chat_system` (optional) sets the context for the conversation,
+  providing the AI with a “hint” about the type of response expected
+- `#| chat_user` your messages
+- `#| chat_assistant` the AIs real responses, or the ones that you
+  ingest into the dialog
+
+and sends the dialog to the Openai API.
+
+![](files/yasi_demo_roos.gif)

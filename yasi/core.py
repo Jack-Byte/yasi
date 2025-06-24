@@ -14,7 +14,7 @@ import asyncio
 class JupyterChat:
     """Integrates a chatbot into JupyterLab, allowing users to interact with an OpenAI model directly within notebooks."""
     def __init__(self, 
-                 api_key : str,  # api key for the openai api
+                 api_key : str=None,  # api key for the openai api
                  openai_base_url : str =None, # base url of the openai api
                  model : str =None, # model id for the openai api
                  tag_system : str ='#| chat_system', # tag for system chat markdown cells
