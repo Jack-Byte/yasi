@@ -17,7 +17,7 @@ $ pip install git+https://github.com/Jack-Byte/yasi.git
 or from [pypi](https://pypi.org/project/yasi/)
 
 ``` sh
-$ pip install yasi
+$ pip install ipy-yasi
 ```
 
 ### Documentation

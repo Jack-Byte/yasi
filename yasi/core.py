@@ -6,7 +6,8 @@
 __all__ = ['JupyterChat', 'tag_in_cell']
 
 # %% ../nbs/00_core.ipynb 3
-from ipylab import JupyterFrontEnd
+from ipylab import JupyterFrontEnd, Panel
+from ipywidgets import Checkbox, Dropdown, Text
 import openai
 import json
 import asyncio
@@ -23,12 +24,66 @@ class JupyterChat:
                 ):
         self.client = openai.Client(base_url=openai_base_url, api_key=api_key)
         self.app = JupyterFrontEnd()
-        self.model = model if model is not None else 'meta-llama/llama-3.3-8b-instruct:free'
+        self.get_models()
+        self.model = model
+        if self.model is None:
+            # try to use free llama-3.1-8b if no model is given
+            default = 'meta-llama/llama-3.1-8b-instruct:free'
+            self.model = default if default in [m['id'] for m in self.models] else None
         self.latest_response = None
         self.tag_system =  tag_system
         self.tag_user = tag_user
         self.tag_assistant = tag_assistant
 
+
+    def get_models(self):
+        """Create list of model objects from the Openai client"""
+        available_models = self.client.models.list()
+        self.models = [{"company" : model.name.split(':')[0], 
+                        "name" :  model.name, 
+                        "id" : model.id,
+                        "free" :  model.id[-5:] == ':free'
+                       }for model in available_models ]
+
+    def setup_ipylab_panel(self):
+        """Add an ipylab panel to browse and select available models"""
+        companies = tuple(set([m['company'] for m in self.models if m['free'] == True]))
+        company = 'Meta' if 'Meta' in companies else companies[0]
+        filtered_models = tuple([m['id'] for m in self.models if m['company'] == company])
+        model = 'meta-llama/llama-3.1-8b-instruct:free' if 'meta-llama/llama-3.1-8b-instruct:free' in filtered_models else filtered_models[0]
+        self.wgt_dd_company = Dropdown(options=companies, value=company, description='Company', tooltip='', layout={'width': '600px'})
+        self.wgt_dd_company.observe(self.update_any_widget)
+        self.wgt_dd_model = Dropdown(options=filtered_models, value=model, description='Model', tooltip='', layout={'width': '600px'})
+        self.wgt_dd_model.observe(self.update_model_widget)
+        self.wgt_cb_free_models = Checkbox(value=True, description='free',disabled=False,indent=False)
+        self.wgt_cb_free_models.observe(self.update_any_widget)
+        self.wgt_txt_search_models = Text(value="", description='Search',disabled=False,indent=False)
+        self.wgt_txt_search_models.observe(self.update_any_widget)
+    
+        panel = Panel()
+        panel.children = [self.wgt_dd_company, self.wgt_dd_model,  self.wgt_cb_free_models#,  self.wgt_txt_search_models
+            ]
+        panel.title.label = 'Yasi'
+        panel.title.icon_class = 'jp-PythonIcon'
+        panel.title.closable = True
+        self.panel = panel
+        self.app.shell.add(self.panel, 'right', { 'rank': '1000'})
+
+    def close_ipylab_panel(self):
+        self.panel.close()
+
+    def update_any_widget(self, change):
+        """Update the options of the widgets based on the selection"""
+        selected_company = self.wgt_dd_company.value
+        free = self.wgt_cb_free_models.value
+        search = self.wgt_txt_search_models.value
+        companies = companies = tuple(set([m['company'] for m in self.models if (search in m['id']) & (m['free'] == free)]))
+        model_ids = tuple([m['id'] for m in self.models if (m['company'] == selected_company) & (search in m['id']) & (m['free'] == free)])
+        self.wgt_dd_model.options = model_ids
+    
+    def update_model_widget(self, change):
+        self.model = self.wgt_dd_model.value
+    
     def create_new_markdown_cell(self, 
                                  content: str # Markdown content
                                 ):
