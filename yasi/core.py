@@ -28,8 +28,9 @@ class JupyterChat:
         self.model = model
         if self.model is None:
             # try to use free llama-3.1-8b if no model is given
-            default = 'meta-llama/llama-3.1-8b-instruct:free'
-            self.model = default if default in [m['id'] for m in self.models] else None
+            free_llamas = [m['id'] for m in self.models if 'meta-llama/llama-3' in m['id'] and ':free' in  m['id']]
+            default = free_llamas[-1] if len(free_llamas) > 0 else None
+            self.model = default
         self.latest_response = None
         self.tag_system =  tag_system
         self.tag_user = tag_user
