@@ -7,7 +7,7 @@ __all__ = ['JupyterChat', 'tag_in_cell']
 
 # %% ../nbs/00_core.ipynb 3
 from ipylab import JupyterFrontEnd, Panel
-from ipywidgets import Checkbox, Dropdown, Text
+from ipywidgets import Button, Checkbox, Dropdown, Text, FloatSlider, IntSlider
 import openai
 import json
 import asyncio
@@ -36,12 +36,18 @@ class JupyterChat:
         self.tag_user = tag_user
         self.tag_assistant = tag_assistant
 
+        self.max_tokens = None
+        self.temperature = None
+        self.presence_penalty = None
+
+        self.setup_ipylab_panel()
+        self.setup_ipylab_toolbar()
 
     def get_models(self):
         """Create list of model objects from the Openai client"""
         available_models = self.client.models.list()
-        self.models = [{"company" : model.name.split(':')[0], 
-                        "name" :  model.name, 
+        self.models = [{"company" : model.name.split(':')[0] if model.name else model.id.split('/')[0],
+                        "name" :  model.name if model.name else model.id.split('/')[-1], 
                         "id" : model.id,
                         "free" :  model.id[-5:] == ':free'
                        }for model in available_models ]
@@ -60,18 +66,43 @@ class JupyterChat:
         self.wgt_cb_free_models.observe(self.update_any_widget)
         self.wgt_txt_search_models = Text(value="", description='Search',disabled=False,indent=False)
         self.wgt_txt_search_models.observe(self.update_any_widget)
-    
+        self.wgt_btn_close_panel =  Button(button_style='danger',tooltip='Close Panel',icon='window-close ')
+        self.wgt_btn_close_panel.on_click(self.remove_ipylab_features)
+
+        # Openai Body parameters
+        self.wgt_is_max_tokens = IntSlider(value=256, min=16, max=4096, description="Max tokens:", step=1)
+        self.wgt_is_max_tokens.observe(self.update_any_widget)
+        self.wgt_fs_temperature = FloatSlider(value=0.2, min=0.0, max=2.0, description="Temperature:", step=0.1, continuous_update=False)
+        self.wgt_fs_temperature.observe(self.update_any_widget)
+        self.wgt_fs_presence_penalty = FloatSlider(value=0.0, min=-2.0, max=2.0, description="Presence penalty:", step=0.1, continuous_update=False)
+        self.wgt_fs_presence_penalty.observe(self.update_any_widget)
+        
         panel = Panel()
-        panel.children = [self.wgt_dd_company, self.wgt_dd_model,  self.wgt_cb_free_models#,  self.wgt_txt_search_models
-            ]
+        panel.children = [self.wgt_btn_close_panel, self.wgt_dd_company, self.wgt_dd_model,  self.wgt_cb_free_models, #self.wgt_txt_search_models,
+                          self.wgt_is_max_tokens, self.wgt_fs_temperature, self.wgt_fs_presence_penalty]
         panel.title.label = 'Yasi'
-        panel.title.icon_class = 'jp-PythonIcon'
+        panel.title.icon_class = 'fa fa-robot'
         panel.title.closable = True
         self.panel = panel
         self.app.shell.add(self.panel, 'right', { 'rank': '1000'})
 
-    def close_ipylab_panel(self):
+    def add_message_cell(self, id):
+        content =f"#| {self.tag_assistant}\n\n" if id == "yasi-a" else f"#| {self.tag_user}\n\n"
+        self.create_new_markdown_cell(content)
+
+    def setup_ipylab_toolbar(self):
+        self.app.commands.add_command("add_message_cell", self.add_message_cell)
+        self.app.commands.add_command("send_yasi_dialog", self.send_dialog)
+       
+        self.app.toolbar.add_button("yasi-u", "add_message_cell", { "id" : "yasi-u" }, iconClass='fa fa-comment', tooltip="Yasi: Add user message", after = "cellType")
+        self.app.toolbar.add_button("yasi-a", "add_message_cell", { "id" : "yasi-a" }, iconClass='fa fa-robot', tooltip="Yasi: Add assistant message", after = "yasi-u")
+        self.app.toolbar.add_button("yasi-send", "send_yasi_dialog", { "id" : "yasi-send" }, iconClass='fa fa-paper-plane', tooltip="Yasi: Send dialog to AI", after = "yasi-a")
+
+    def remove_ipylab_features(self, change):
         self.panel.close()
+        self.app.toolbar.remove_button("yasi-u")
+        self.app.toolbar.remove_button("yasi-a")
+        self.app.toolbar.remove_button("yasi-send")
 
     def update_any_widget(self, change):
         """Update the options of the widgets based on the selection"""
@@ -81,6 +112,10 @@ class JupyterChat:
         companies = companies = tuple(set([m['company'] for m in self.models if (search in m['id']) & (m['free'] == free)]))
         model_ids = tuple([m['id'] for m in self.models if (m['company'] == selected_company) & (search in m['id']) & (m['free'] == free)])
         self.wgt_dd_model.options = model_ids
+
+        self.max_tokens = self.wgt_is_max_tokens.value
+        self.temperature = self.wgt_fs_temperature.value
+        self.presence_penalty = self.wgt_fs_presence_penalty.value
     
     def update_model_widget(self, change):
         self.model = self.wgt_dd_model.value
@@ -93,16 +128,32 @@ class JupyterChat:
         self.app.commands.execute('notebook:replace-selection', { 'text': content})
         self.app.commands.execute('notebook:change-cell-to-markdown')
 
+    def send_chat_completions(self, 
+                              messages: list # A list of messages comprising the conversation so far.
+                             ):
+        """Send messages a.k.a dialog to the Openai chat completions API"""
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages= messages,
+                max_tokens = self.max_tokens,
+                temperature = self.temperature,
+                presence_penalty = self.presence_penalty
+            )
+            self.latest_response = response
+            response_text = response.choices[0].message.content.strip()
+        except Exception as e: 
+            response_text = f'There was an problem communicating with the Openai API:\n\n{e}'
+
+        # Format the response with Markdown-like style in a code cell
+        formatted_response = response_text.strip()
+
+        # Insert a new cell below with the assistant's response
+        self.create_new_markdown_cell(formatted_response)
+
     def send_query(self, user_prompt: str):
         """Send user prompt to chatbot and insert response as new cell"""
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": user_prompt}]
-        )
-        self.latest_response = response
-        response_text = response.choices[0].message.content.strip()
-        formatted_response = f'{self.tag_assistant}\n\n{response_text}'.strip()
-        self.create_new_markdown_cell(formatted_response)
+        self.send_chat_completions(messages=[{"role": "user", "content": user_prompt}])
 
     def get_current_nb(self):
         """Saves the the notebook returns the JSON content"""
@@ -134,34 +185,10 @@ class JupyterChat:
                 self.create_new_markdown_cell(tmp_content)
         return tmp_messages
 
-    def send_dialog(self):
+    def send_dialog(self, id=None):
         """Sends the dialoge to the openai api and adds the response as a new cell below"""
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages= self.extract_notebook_dialog()
-        )
-        self.latest_response = response
-        response_text = response.choices[0].message.content.strip()
-        
-        # Format the response with Markdown-like style in a code cell
-        formatted_response = response_text.strip()
+        self.send_chat_completions(messages=self.extract_notebook_dialog())
 
-        # Insert a new cell below with the assistant's response
-        self.create_new_markdown_cell(formatted_response)
-
-    async def initialize(self):
-        """Asynchronous initialization to ensure the app is fully ready."""
-        #await self.app.start()  # Wait for the environment to initialize
-        # Wait for current session info or timeout (up to 5 seconds)
-        for _ in range(10):  # Try up to 10 times with 0.5s wait
-            self.current_session = self.app.sessions.current_session
-            if 'name' in self.current_session:
-                break
-            await asyncio.sleep(0.5)
-        else:
-            raise RuntimeError("Could not detect current session after timeout.")
-
-        print("Chat initialized for session:", self.current_session.name)
 
 # %% ../nbs/00_core.ipynb 4
 def tag_in_cell(cell, # Dictonary of a Jupyter Notebook cell
