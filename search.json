@@ -1,0 +1,52 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "yasi",
+    "section": "",
+    "text": "What if you could have a more fluid, interactive conversation with AI? Enter Dialog Engineering, a groundbreaking approach that lets you construct and edit a dialogue with the AI in real-time.\n\nUnlike prompt engineering where you’re just creating a single sentence or paragraph or whatever, that’s actually part of a whole back and forth dialog. All of the previous steps get sent to the AI model as well, not just the prompt. And they all greatly influence how it responds. And how it responds influences you as to what you then add to the dialog. - Jeremy Howard, from the MAD Podcast 34:42\n\nYasi seamlessly integrates Jupyter Notebooks with AI to unlock the potential of Dialog Engineering. With yasi, you can create, edit, and refine your conversations with AI. It is a DIY implementation of the - yet to be released - platform solveit from answer.ai.\nFor more information see the following articles:\n\nDialog Engineering\nIntroducing Dialog Engineering with yasi",
+    "crumbs": [
+      "yasi"
+    ]
+  },
+  {
+    "objectID": "index.html#background",
+    "href": "index.html#background",
+    "title": "yasi",
+    "section": "",
+    "text": "What if you could have a more fluid, interactive conversation with AI? Enter Dialog Engineering, a groundbreaking approach that lets you construct and edit a dialogue with the AI in real-time.\n\nUnlike prompt engineering where you’re just creating a single sentence or paragraph or whatever, that’s actually part of a whole back and forth dialog. All of the previous steps get sent to the AI model as well, not just the prompt. And they all greatly influence how it responds. And how it responds influences you as to what you then add to the dialog. - Jeremy Howard, from the MAD Podcast 34:42\n\nYasi seamlessly integrates Jupyter Notebooks with AI to unlock the potential of Dialog Engineering. With yasi, you can create, edit, and refine your conversations with AI. It is a DIY implementation of the - yet to be released - platform solveit from answer.ai.\nFor more information see the following articles:\n\nDialog Engineering\nIntroducing Dialog Engineering with yasi",
+    "crumbs": [
+      "yasi"
+    ]
+  },
+  {
+    "objectID": "index.html#usage",
+    "href": "index.html#usage",
+    "title": "yasi",
+    "section": "Usage",
+    "text": "Usage\n\nInstallation\nInstall latest from the GitHub repository:\n$ pip install git+https://github.com/Jack-Byte/yasi.git\nor from pypi\n$ pip install ipy-yasi\n\n\nDocumentation\nDocumentation can be found hosted on this GitHub repository’s pages. Additionally you can find package manager specific guidelines on conda and pypi respectively.",
+    "crumbs": [
+      "yasi"
+    ]
+  },
+  {
+    "objectID": "index.html#how-to-use",
+    "href": "index.html#how-to-use",
+    "title": "yasi",
+    "section": "How to use",
+    "text": "How to use\nYou can try it online with Binder \nImport JupyterChat, set openai_base_url (only if you are not using Openai itself), and provide your api key directly or as the env variable OPENAI_API_KEY.\n\nfrom yasi.core import JupyterChat\n\njc = JupyterChat(openai_base_url=\"https://openrouter.ai/api/v1\", api_key=None)\n\n\nQuery Openai directly\nYou can use the send_query method to interacte through a code cell directly. The response will be added as a new markdown cell in your current notebook.\n\njc.send_query('Kia ora, how are you?')\n\nKia ora! I’m doing well, thanks for asking! It’s great to connect with you and practice some basic Maori phrases. How can I help you today?\n\n\nSend Dialoge from your Notebook\nJupyterChat is designed to extract messages from your current notebook and construct a dialoge.\nIt’s searching for markdown cells that contain the tags\n\n#| chat_system (optional) sets the context for the conversation, providing the AI with a “hint” about the type of response expected\n#| chat_user your messages\n#| chat_assistant the AIs real responses, or the ones that you ingest into the dialog\n\nand sends the dialog to the Openai API.",
+    "crumbs": [
+      "yasi"
+    ]
+  },
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "Source",
+    "section": "",
+    "text": "source\n\nJupyterChat\n\n JupyterChat (api_key:str=None, openai_base_url:str=None, model:str=None,\n              tag_system:str='#| chat_system', tag_user:str='#|\n              chat_user', tag_assistant:str='#| chat_assistant')\n\nIntegrates a chatbot into JupyterLab, allowing users to interact with an OpenAI model directly within notebooks.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\napi_key\nstr\nNone\napi key for the openai api\n\n\nopenai_base_url\nstr\nNone\nbase url of the openai api\n\n\nmodel\nstr\nNone\nmodel id for the openai api\n\n\ntag_system\nstr\n#| chat_system\ntag for system chat markdown cells\n\n\ntag_user\nstr\n#| chat_user\ntag for user chat markdown cells\n\n\ntag_assistant\nstr\n#| chat_assistant\ntag for assistant chat markdown cells\n\n\n\n\nsource\n\n\ntag_in_cell\n\n tag_in_cell (cell, tag)\n\nChecks a Jupyter Notebook cells source, if any line starts with the given tag\n\n\n\n\nType\nDetails\n\n\n\n\ncell\n\nDictonary of a Jupyter Notebook cell\n\n\ntag\n\nThe tag to search\n\n\nReturns\nbool\nTrue if any line contains the given tag",
+    "crumbs": [
+      "Source"
+    ]
+  }
+]
