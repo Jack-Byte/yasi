@@ -26,11 +26,6 @@ class JupyterChat:
         self.app = JupyterFrontEnd()
         self.get_models()
         self.model = model
-        if self.model is None:
-            # try to use free llama-3.1-8b if no model is given
-            free_llamas = [m['id'] for m in self.models if 'meta-llama/llama-3' in m['id'] and ':free' in  m['id']]
-            default = free_llamas[-1] if len(free_llamas) > 0 else None
-            self.model = default
         self.latest_response = None
         self.tag_system =  tag_system
         self.tag_user = tag_user
@@ -49,21 +44,19 @@ class JupyterChat:
         self.models = [{"company" : model.name.split(':')[0] if model.name else model.id.split('/')[0],
                         "name" :  model.name if model.name else model.id.split('/')[-1], 
                         "id" : model.id,
-                        "free" :  model.id[-5:] == ':free'
                        }for model in available_models ]
 
     def setup_ipylab_panel(self):
         """Add an ipylab panel to browse and select available models"""
-        companies = tuple(set([m['company'] for m in self.models if m['free'] == True]))
+        companies = tuple(set([m['company'] for m in self.models]))
         company = 'Meta' if 'Meta' in companies else companies[0]
         filtered_models = tuple([m['id'] for m in self.models if m['company'] == company])
-        model = 'meta-llama/llama-3.1-8b-instruct:free' if 'meta-llama/llama-3.1-8b-instruct:free' in filtered_models else filtered_models[0]
+        my_fav_model = 'meta-llama/llama-3.1-8b-instruct'
+        model = my_fav_model if my_fav_model in filtered_models else filtered_models[0]
         self.wgt_dd_company = Dropdown(options=companies, value=company, description='Company', tooltip='', layout={'width': '600px'})
         self.wgt_dd_company.observe(self.update_any_widget)
         self.wgt_dd_model = Dropdown(options=filtered_models, value=model, description='Model', tooltip='', layout={'width': '600px'})
         self.wgt_dd_model.observe(self.update_model_widget)
-        self.wgt_cb_free_models = Checkbox(value=True, description='free',disabled=False,indent=False)
-        self.wgt_cb_free_models.observe(self.update_any_widget)
         self.wgt_txt_search_models = Text(value="", description='Search',disabled=False,indent=False)
         self.wgt_txt_search_models.observe(self.update_any_widget)
         self.wgt_btn_close_panel =  Button(button_style='danger',tooltip='Close Panel',icon='window-close ')
@@ -78,7 +71,7 @@ class JupyterChat:
         self.wgt_fs_presence_penalty.observe(self.update_any_widget)
         
         panel = Panel()
-        panel.children = [self.wgt_btn_close_panel, self.wgt_dd_company, self.wgt_dd_model,  self.wgt_cb_free_models, #self.wgt_txt_search_models,
+        panel.children = [self.wgt_btn_close_panel, self.wgt_dd_company, self.wgt_dd_model, #self.wgt_txt_search_models,
                           self.wgt_is_max_tokens, self.wgt_fs_temperature, self.wgt_fs_presence_penalty]
         panel.title.label = 'Yasi'
         panel.title.icon_class = 'fa fa-robot'
@@ -87,7 +80,7 @@ class JupyterChat:
         self.app.shell.add(self.panel, 'right', { 'rank': '1000'})
 
     def add_message_cell(self, id):
-        content =f"#| {self.tag_assistant}\n\n" if id == "yasi-a" else f"#| {self.tag_user}\n\n"
+        content =f"{self.tag_assistant}\n\n" if id == "yasi-a" else f"{self.tag_user}\n\n"
         self.create_new_markdown_cell(content)
 
     def setup_ipylab_toolbar(self):
@@ -107,10 +100,9 @@ class JupyterChat:
     def update_any_widget(self, change):
         """Update the options of the widgets based on the selection"""
         selected_company = self.wgt_dd_company.value
-        free = self.wgt_cb_free_models.value
         search = self.wgt_txt_search_models.value
-        companies = companies = tuple(set([m['company'] for m in self.models if (search in m['id']) & (m['free'] == free)]))
-        model_ids = tuple([m['id'] for m in self.models if (m['company'] == selected_company) & (search in m['id']) & (m['free'] == free)])
+        companies = companies = tuple(set([m['company'] for m in self.models if (search in m['id'])]))
+        model_ids = tuple([m['id'] for m in self.models if (m['company'] == selected_company) & (search in m['id'])])
         self.wgt_dd_model.options = model_ids
 
         self.max_tokens = self.wgt_is_max_tokens.value

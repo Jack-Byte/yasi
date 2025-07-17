@@ -99,4 +99,4 @@ It’s searching for markdown cells that contain the tags
 
 and sends the dialog to the Openai API.
 
-![](https://github.com/Jack-Byte/yasi/blob/main/files/yasi_demo_roos.gif)
+![](files/yasi_demo_roos.gif)
